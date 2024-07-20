@@ -213,6 +213,7 @@ mod test {
     struct Person {
         pub name: String,
         pub childs: Option<Vec<Person>>,
+        pub template: Option<String>,
     }
 
     fn default_en_translation() -> HashMap<String, String> {
@@ -231,6 +232,10 @@ mod test {
         hashmap.insert(
             "hijack_template_hello".to_string(),
             "Hear me out! {{{*name}}} :P".to_string(),
+        );
+        hashmap.insert(
+            "inject_template_for_array".to_string(),
+            "Here's the family:\n{{{**template}}}".to_string(),
         );
         hashmap
     }
@@ -263,6 +268,7 @@ mod test {
         let john = Person {
             name: "John".to_string(),
             childs: None,
+            template: None,
         };
         assert_eq!(handler.tt("hello", &john), "Hello John.".to_string())
     }
@@ -278,6 +284,7 @@ mod test {
         let john = Person {
             name: "John".to_string(),
             childs: None,
+            template: None,
         };
         assert_eq!(
             handler.tt("hard_hello", &john),
@@ -296,6 +303,7 @@ mod test {
         let john = Person {
             name: "key".to_string(),
             childs: None,
+            template: None,
         };
         assert_eq!(
             handler.tt("hijack_value", &john),
@@ -313,14 +321,58 @@ mod test {
         };
         let john = Person {
             name: "useless_template".to_string(),
+            template: None,
             childs: Some(vec![Person {
                 name: "Janne".to_string(),
                 childs: None,
+                template: None,
             }]),
         };
         assert_eq!(
             handler.tt("hijack_template_hello", &john),
             "Hear me out! You're named Janne. Crazy isn't it? :P".to_string()
+        )
+    }
+
+    #[test]
+    fn test_template_value_template_injector_translation() {
+        let handler = I18nHandler {
+            current_language: "en".to_string(),
+            supported_languages: vec!["en"],
+            set_language: Callback::noop(),
+            translations: default_translation(),
+        };
+        let childrens = vec![
+            Person {
+                name: "Janne".to_string(),
+                childs: None,
+                template: None,
+            },
+            Person {
+                name: "Alice".to_string(),
+                childs: None,
+                template: None,
+            },
+            Person {
+                name: "Bob".to_string(),
+                childs: None,
+                template: None,
+            },
+        ];
+        let mut template_content = String::new();
+        for i in 0..childrens.len() {
+            template_content.push_str("- {{");
+            template_content.push_str(&format!("childs.{}.name", i));
+            template_content.push_str("}}\n");
+        }
+        let john = Person {
+            name: "John".to_string(),
+            template: Some(template_content),
+            childs: Some(childrens),
+        };
+        assert_eq!(
+            handler.tt("inject_template_for_array", &john),
+            "Here's the family:\n- Janne\n- Alice\n- Bob\n".to_string()
         )
     }
 }

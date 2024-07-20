@@ -69,6 +69,7 @@ The syntax is the following:
 - `{{*data_field_name}}`: use the value of your data as a key of your translations to inject it's value. (No parsing)
 - `{{{translation_field_name}}}`: use the value of your translation key to inject it's template, forcing you to also inject the needed values. (Parsing happen)
 - `{{{*data_field_name}}}`: use the value of your data as a key of your translations to inject it's template, forcing you to also inject the needed values. (Parsing happen)
+- `{{{**data_field_name}}}`: use the value of your data as a template for your translations, helping with the creation of dynamic templates using references. (Parsing happen)
 
 Here's some rules to also follow:
 - The `\` symbol followed by `{`, `}` or `\` will always escape the next character, making `\` ignored in the output.

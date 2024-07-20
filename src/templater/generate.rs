@@ -19,6 +19,7 @@ pub fn generate(
 
                     let mut apply_template = false;
                     let mut pointer = false;
+                    let mut inject = false;
                     let mut key = String::new();
 
                     // Templating
@@ -31,6 +32,11 @@ pub fn generate(
                     if let Some('*') = chars.peek() {
                         pointer = true;
                         chars.next();
+                        if let Some('*') = chars.peek() {
+                            inject = apply_template; // inject can only be true in a template
+                            pointer = !apply_template; // If inject, then bye pointer
+                            chars.next();
+                        }
                     }
 
                     // Key looking
@@ -106,13 +112,12 @@ pub fn generate(
                         if pointer {
                             if let Some(value) = data.get(&key) {
                                 if let Some(value) = translation.get(value) {
-                                    let template_result =
-                                        generate(value, translation, data, option);
-                                    if let Err(err) = template_result {
-                                        return Err(err);
-                                    } else if let Ok(value) = template_result {
-                                        result.push_str(&value);
-                                    }
+                                    match generate(value, translation, data, option) {
+                                        Ok(value) => {
+                                            result.push_str(&value);
+                                        }
+                                        Err(err) => return Err(err),
+                                    };
                                 } else if option.safe_parse {
                                     if option.display_missing_translations {
                                         let patched_value =
@@ -144,13 +149,35 @@ pub fn generate(
                                     key
                                 )));
                             }
-                        } else if let Some(value) = translation.get(&key) {
-                            let template_result = generate(value, translation, data, option);
-                            if let Err(err) = template_result {
-                                return Err(err);
-                            } else if let Ok(value) = template_result {
-                                result.push_str(&value);
+                        } else if inject {
+                            if let Some(value) = data.get(&key) {
+                                match generate(value, translation, data, option) {
+                                    Ok(value) => {
+                                        result.push_str(&value);
+                                    }
+                                    Err(err) => return Err(err),
+                                };
+                            } else if option.safe_parse {
+                                if option.display_missing_keys {
+                                    let patched_value = option.override_missing_keys.as_ref();
+                                    let patched_value = patched_value
+                                        .map(|f| f(&key))
+                                        .unwrap_or(format!("[MISSING_DATA_KEY: `{}`]", key));
+                                    result.push_str(&patched_value);
+                                }
+                            } else {
+                                return Err(StringTemplaterError::UnknownField(format!(
+                                    "The field `{}` does not exist in data.",
+                                    key
+                                )));
                             }
+                        } else if let Some(value) = translation.get(&key) {
+                            match generate(value, translation, data, option) {
+                                Ok(value) => {
+                                    result.push_str(&value);
+                                }
+                                Err(err) => return Err(err),
+                            };
                         } else if option.safe_parse {
                             if option.display_missing_translations {
                                 let patched_value = option.override_missing_translations.as_ref();
