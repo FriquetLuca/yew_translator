@@ -1,7 +1,10 @@
+#[cfg(feature = "translation_templater")]
 use crate::templater::{
     encode_json_to_hashmap, generate, parse_to_hashmap, StringTemplaterError,
     StringTemplaterOptions,
 };
+#[cfg(feature = "handlebars")]
+use handlebars::{Handlebars, RenderError};
 use serde::Serialize;
 use std::collections::HashMap;
 use yew::{function_component, html, use_state, Callback, ContextProvider, Html, Properties};
@@ -58,7 +61,8 @@ impl I18nHandler {
             )
     }
 
-    // Find the template to display for the current language code in use and inject it some data.
+    #[cfg(feature = "translation_templater")]
+    // Find the template to display for the current language code in use and inject it some data (Use the translation_templater).
     pub fn tt<T: ?Sized + Serialize>(&self, key: &str, data: &T) -> String {
         match parse_to_hashmap(data) {
             Ok(data) => self.tth_with_options(
@@ -86,7 +90,8 @@ impl I18nHandler {
         }
     }
 
-    // Find the template to display for the current language code in use and inject it some data.
+    #[cfg(feature = "translation_templater")]
+    // Find the template to display for the current language code in use and inject it some data (Use the translation_templater).
     pub fn tth(&self, key: &str, data: &HashMap<String, String>) -> String {
         self.tth_with_options(
             key,
@@ -111,7 +116,8 @@ impl I18nHandler {
         )
     }
 
-    // Find the template to display for the current language code in use and inject it some data.
+    #[cfg(feature = "translation_templater")]
+    // Find the template to display for the current language code in use and inject it some data (Use the translation_templater).
     pub fn tth_with_options(
         &self,
         key: &str,
@@ -145,7 +151,8 @@ impl I18nHandler {
             )
     }
 
-    // Find the template to display for the current language code in use and inject it some data.
+    #[cfg(feature = "translation_templater")]
+    // Find the template to display for the current language code in use and inject it some data (Use the translation_templater).
     pub fn tt_with_options<T: ?Sized + Serialize>(
         &self,
         key: &str,
@@ -156,6 +163,24 @@ impl I18nHandler {
             Ok(data) => self.tth_with_options(key, &data, option),
             Err(err) => err.to_string(),
         }
+    }
+
+    #[cfg(feature = "handlebars")]
+    // Using your own instance of Handlebars, find the template to display for the current language code in use and inject it some data (Use handlebars).
+    pub fn thb_registry<T: Serialize>(
+        &self,
+        reg: Handlebars,
+        key: &str,
+        data: &T,
+    ) -> Result<String, RenderError> {
+        reg.render_template(&self.t(key), data)
+    }
+
+    #[cfg(feature = "handlebars")]
+    // Find the template to display for the current language code in use and inject it some data (Use handlebars).
+    pub fn thb<T: Serialize>(&self, key: &str, data: &T) -> Result<String, RenderError> {
+        let reg = Handlebars::new();
+        reg.render_template(&self.t(key), data)
     }
 }
 
@@ -237,9 +262,11 @@ mod test {
             "inject_template_for_array".to_string(),
             "Here's the family:\n{{{**template}}}".to_string(),
         );
+        hashmap.insert("handlebars_1".to_string(), "Hello {{name}}".to_string());
         hashmap
     }
 
+    #[cfg(feature = "translation_templater")]
     fn default_translation() -> HashMap<String, HashMap<String, String>> {
         let mut translations = HashMap::new();
         translations.insert("en".to_string(), default_en_translation());
@@ -247,6 +274,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "translation_templater")]
     fn test_key_translation() {
         let handler = I18nHandler {
             current_language: "en".to_string(),
@@ -258,6 +286,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "translation_templater")]
     fn test_template_translation() {
         let handler = I18nHandler {
             current_language: "en".to_string(),
@@ -274,6 +303,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "translation_templater")]
     fn test_template_nested_translation() {
         let handler = I18nHandler {
             current_language: "en".to_string(),
@@ -293,6 +323,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "translation_templater")]
     fn test_template_value_pointer_translation() {
         let handler = I18nHandler {
             current_language: "en".to_string(),
@@ -312,6 +343,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "translation_templater")]
     fn test_template_value_template_pointer_translation() {
         let handler = I18nHandler {
             current_language: "en".to_string(),
@@ -335,6 +367,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "translation_templater")]
     fn test_template_value_template_injector_translation() {
         let handler = I18nHandler {
             current_language: "en".to_string(),
@@ -374,5 +407,22 @@ mod test {
             handler.tt("inject_template_for_array", &john),
             "Here's the family:\n- Janne\n- Alice\n- Bob\n".to_string()
         )
+    }
+
+    #[test]
+    #[cfg(feature = "handlebars")]
+    fn test_template_handlebars() {
+        use serde_json::json;
+        let handler = I18nHandler {
+            current_language: "en".to_string(),
+            supported_languages: vec!["en"],
+            set_language: Callback::noop(),
+            translations: default_translation(),
+        };
+        let result = match handler.thb("handlebars_1", &json!({"name": "foo"})) {
+            Ok(result) => result,
+            Err(_) => "".to_string(),
+        };
+        assert_eq!(result, "Hello foo".to_string())
     }
 }
