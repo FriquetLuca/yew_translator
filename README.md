@@ -106,9 +106,9 @@ Here's some rules to also follow:
 
 ## Handlebars
 
-If you've not heard of it already, checkout (handlebars)[https://crates.io/crates/handlebars] crates to know more about it.
+If you've not heard of it already, checkout [handlebars](https://crates.io/crates/handlebars) crates to know more about it.
 
-### Hox to use
+### How to use
 
 When importing `yew_translator` in your project, consider only using the `yew-i18n` like this:
 ```toml

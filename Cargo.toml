@@ -2,7 +2,7 @@
 name = "yew_translator"
 description = "A i18n implementation for yew using string templaters."
 license = "MIT OR Apache-2.0"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 readme = "README.md"
 repository = "https://github.com/FriquetLuca/yew_translator"
